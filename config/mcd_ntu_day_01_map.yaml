@@ -2,7 +2,11 @@
 # config file for mcd dataset
 
 # directories and paths
-bag_path: '/media/david/PortableSSD/data/Rosbags/mcd/ntu_day_01_os1_128.bag'
+
+# bag_path needs to be adjusted, all other paths are relative paths
+bag_path: '/_path_/_to_/ntu_day_01_os1_128.bag'
+
+# relative paths
 pc_topic_name: '/os_cloud_node/points'
 pose_file_dir: 'gt_poses/mcd/ntu_day_01_pose_in_os_frame.csv'
 pc_dir: 'datasets/mcd/ntu_day_01_os1/pcs'

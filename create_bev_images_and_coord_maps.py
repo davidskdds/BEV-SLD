@@ -30,8 +30,10 @@ def main():
 
     # create directories if they do not exist
     os.makedirs(bev_img_dir, exist_ok=True)
-    os.makedirs(label_x_dir, exist_ok=True)
-    os.makedirs(label_y_dir, exist_ok=True)
+    
+    if cfg.eval_only is False:
+        os.makedirs(label_x_dir, exist_ok=True)
+        os.makedirs(label_y_dir, exist_ok=True)
 
     # read poses
     poses_tum = read_poses(cfg.pose_file_dir)

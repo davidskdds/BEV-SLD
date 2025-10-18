@@ -59,3 +59,7 @@ To train the BEV-SLD model on the mapping sequence, run:
 # Localization
 To use a trained network for localization, run:  
 `python train.py --config config/mcd_ntu_day_01_map.yaml`
+
+# Evaluation
+To evaluate the success rate (SR) and median errors, run:  
+`python eval_poses.py --config config/mcd_ntu_day_01_map.yaml`

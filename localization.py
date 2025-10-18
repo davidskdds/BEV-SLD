@@ -19,6 +19,8 @@ from utils import extract_timestamp
 from timeit import default_timer as timer
 from tqdm import tqdm
 from utils import get_config,create_local_coord_map
+from matplotlib.patches import Patch
+
 
 def load_tiff_images_to_numpy(directory):
     image_paths = [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith('.tif')]
@@ -146,6 +148,8 @@ def main():
         ## plot
         ax = plt.gca()
         ax.cla() # clear things for fresh plot
+        
+        ax.set_title("Global Localization Visualization")
     
         x_min = np.min(coords[:, 0]) - 5
         x_max = np.max(coords[:, 0]) + 5
@@ -168,10 +172,17 @@ def main():
         ax.add_patch(pos_arrow)
         
         ax.set_xlim(x_min,x_max)
-        ax.set_ylim(y_min,y_max)  # adjust if needed
-        ax.axis('off')
-    
+        ax.set_ylim(y_min,y_max)
         ax.set_aspect('equal')
+        ax.set_xlabel("x [m]")
+        ax.set_ylabel("y [m]")
+        
+        legend_elements = [
+            Patch(facecolor='b', edgecolor='b', alpha=0.5, label='Landmarks'),
+            Patch(facecolor='r', edgecolor='r', alpha=0.5, label='Current Position'),
+        ]
+
+        ax.legend(handles=legend_elements, loc='upper right')
         
         plt.draw()
         plt.pause(0.001)

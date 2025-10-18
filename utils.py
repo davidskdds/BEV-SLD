@@ -453,7 +453,7 @@ class ErrorStatistics:
                 result_string = '{:.2f} & {:.2f} / {:.2f} & {:.2f} / {:.2f}'.format(
                     SR, median_t, mean_t, median_r, mean_r)
             else:
-                result_string = 'SR: {:.2f}, Median T: {:.2f} m, Mean T: {:.2f} m, Median R: {:.2f} deg, Mean R: {:.2f} deg'.format(
+                result_string = 'SR: {:.2f} %, Median T: {:.2f} m, Mean T: {:.2f} m, Median R: {:.2f} deg, Mean R: {:.2f} deg'.format(
                     SR, median_t, mean_t, median_r, mean_r)
                 
         else:
@@ -461,7 +461,7 @@ class ErrorStatistics:
                 result_string = '{:.2f} & {:.2f} & {:.2f}'.format(
                     SR, median_t, median_r)
             else:
-                result_string = 'SR: {:.2f}, Median T: {:.2f} m, Median R: {:.2f} deg'.format(
+                result_string = 'SR: {:.2f} %, Median T: {:.2f} m, Median R: {:.2f} deg'.format(
                     SR, median_t, median_r)
         
         return result_string
