@@ -42,6 +42,7 @@ class bev_sld_net(nn.Module):
         # heat map
         self.conv_in = nn.Sequential(ResidualBlock(1,32))
 
+        # downsampling blocks
         self.down1 = DownStepResBlock(32,64) # 256x256
         self.down2 = DownStepResBlock(64,64) # 128x128
         self.down3 = DownStepResBlock(64,128) # 64x64
@@ -73,10 +74,12 @@ class bev_sld_net(nn.Module):
             nn.Conv2d(8, 8, kernel_size=1),nn.GroupNorm(1,8),nn.LeakyReLU(),\
             nn.Conv2d(8, 1, kernel_size=1))#,\
 
-        # common
-        self.restore256 = nn.Upsample((256,256),mode='bilinear',align_corners=True)
+        # upsampling
         self.restore16 = nn.Upsample((16,16),mode='bilinear',align_corners=True)
-
+        self.restore256 = nn.Upsample((256,256),mode='bilinear',align_corners=True)
+        self.restore512 = nn.Upsample((512,512),mode='bicubic',align_corners=True)
+        
+        # landmark coordinate list as embedding
         self.embd_coords = nn.Embedding(n_coords, 2)
 
         with torch.no_grad():
@@ -124,7 +127,6 @@ class bev_sld_net(nn.Module):
 
         # to 512x512
         heatmap = self.restore512(heatmap)
-
 
         # input independent landmark coordinates
         coords = self.embd_coords.weight

@@ -20,11 +20,9 @@ import torch.nn.functional as F
 
 from matplotlib import pyplot as plt
 import torch.nn as nn
-from utils import get_config,load_tiff_images_to_numpy_tifffile,read_poses,get_lr,create_local_coords,save_config_as_yaml,create_init_landmarks
+from utils import get_config,load_tiff_images_to_numpy_tifffile,read_poses,get_lr,save_config_as_yaml,create_init_landmarks
 import tifffile
 from augment import transform_data
-
-from ablation.SuperPointPretrainedNetwork.demo_superpoint import SuperPointFrontend
 
 # tensorboard --logdir=runs/ --host localhost --port 8088 --reload_multifile True
 # browser: http://localhost:8088
@@ -38,7 +36,7 @@ plot_landmarks = False
 Save_Landmarks = True
 
 
-
+# generate initial landmarks from training dataset
 def get_seeds_dataset(train_loader,device_in,cfg):
     
     valid_landmarks = torch.zeros(1, 2, device=device_in)
@@ -49,7 +47,7 @@ def get_seeds_dataset(train_loader,device_in,cfg):
     with torch.no_grad():
         for inputs, labels in train_loader:
 
-            inputs, labels = inputs.to(device), labels.to(device)
+            inputs, labels = inputs.to(device_in), labels.to(device_in)
 
             valid_landmarks = get_seeds_batch(labels,inputs,cfg.n_div,cfg.n_padding,valid_landmarks)
     
@@ -79,19 +77,14 @@ def get_seeds_dataset(train_loader,device_in,cfg):
     
     return downsampled_seed_landmarks
 
-
+# generate initial landmarks from a batch
 def get_seeds_batch(target,density_imgs,n,padding,valid_landmarks):
 
-
-    # n = 16
     nrc = int(density_imgs.shape[3] / n)
-
     error_sum = 0.0
-
     weight_sum = 0
     loss_sum = 0.0
     n_patches = 0
-
 
     for row in range(0+padding,n-padding):
         for col in range(0+padding,n-padding):
@@ -99,7 +92,6 @@ def get_seeds_batch(target,density_imgs,n,padding,valid_landmarks):
             start_col = col * nrc
             
             curr_target = target[:,:,start_row:start_row+nrc,start_col:start_col+nrc]
-            # curr_heatmap = heat_map[:,:,start_row:start_row+nrc,start_col:start_col+nrc]
             curr_density_images = density_imgs[:,:,start_row:start_row+nrc,start_col:start_col+nrc]
 
             density_per_batch = torch.sum(curr_density_images,dim=(1,2,3))
@@ -174,8 +166,6 @@ def landmark_location_and_corresp_loss(heat_map, corresp, coords, global_coordin
     
     # n = 16
     nrc = int(heat_map.shape[3] / cfg.n_div)
-    patch_width = nrc * cfg.grid_res * 0.7
-
     weight_sum = 0
     loss_sum = 0.0
     
@@ -214,14 +204,11 @@ def landmark_location_and_corresp_loss(heat_map, corresp, coords, global_coordin
     # find minimum error to a landmark for each patch
     min_err,ids = torch.min(abs_error_lm[valid_density,:],dim=1)
     
-    # for correspondence prediction use only close landmarks
-    valid_dist = torch.le(min_err, patch_width)
-    
     # valid correspondences for loss
-    corresp_flat_valid = corresp_flat[valid_density,:][valid_dist,:]
+    corresp_flat_valid = corresp_flat[valid_density,:]
     
     # corresp error
-    ce_error = nn.functional.cross_entropy(corresp_flat_valid,ids[valid_dist])
+    ce_error = nn.functional.cross_entropy(corresp_flat_valid,ids)
     
     # log scale
     min_err = torch.log(cfg.loss_gamma*min_err + 1.0)
@@ -294,172 +281,177 @@ class LandmarkDetDataset(Dataset):
         return inp_t, lbl_t
 
 
+def main():
+    writer = SummaryWriter()
+    plot_landmarks = False
+    Save_Landmarks = True
 
-# read config
-cfg = get_config()
+    # read config
+    cfg = get_config()
 
-# save
-save_config_as_yaml(cfg, 'det_cfg.yaml')
+    # save
+    save_config_as_yaml(cfg, 'det_cfg.yaml')
 
-# read poses
-curr_poses = read_poses(cfg.pose_file_dir)
+    # read poses
+    curr_poses = read_poses(cfg.pose_file_dir)
 
-# create network folder if it doesnt exist
-network_dir = os.path.dirname(cfg.network_path)
-os.makedirs(network_dir, exist_ok=True)
+    # create network folder if it doesnt exist
+    network_dir = os.path.dirname(cfg.network_path)
+    os.makedirs(network_dir, exist_ok=True)
 
-# results dir
-result_dir = cfg.dataset_dir + '/results'+cfg.result_dir + '/'
-os.makedirs(result_dir, exist_ok=True)
+    # results dir
+    result_dir = cfg.dataset_dir + '/results'+cfg.result_dir + '/'
+    os.makedirs(result_dir, exist_ok=True)
 
-# device
-device = torch.device('cuda:'+str(cfg.cuda_id) if torch.cuda.is_available() else 'cpu')
-print('Using device:', device)
+    # device
+    device = torch.device('cuda:'+str(cfg.cuda_id) if torch.cuda.is_available() else 'cpu')
+    print('Using device:', device)
 
-# create dataset
-dataset = LandmarkDetDataset(cfg.dataset_dir + '/bev_images', [cfg.dataset_dir + '/label_x', cfg.dataset_dir + '/label_y'],transform=transform_data)
+    # create dataset
+    dataset = LandmarkDetDataset(cfg.dataset_dir + '/bev_images', [cfg.dataset_dir + '/label_x', cfg.dataset_dir + '/label_y'],transform=transform_data)
 
-print('Num samples:', len(dataset))
+    print('Num samples:', len(dataset))
 
-# split in train and test
-total_size = len(dataset)
-test_size  = int(cfg.test_frac * total_size)
-train_size = total_size - test_size
+    # split in train and test
+    total_size = len(dataset)
+    test_size  = int(cfg.test_frac * total_size)
+    train_size = total_size - test_size
 
-# 3. random split (uses a default RNG; pass `generator=torch.Generator().manual_seed(42)` for reproducibility)
-train_ds, test_ds = random_split(dataset, [train_size, test_size])
+    # 3. random split (uses a default RNG; pass `generator=torch.Generator().manual_seed(42)` for reproducibility)
+    train_ds, test_ds = random_split(dataset, [train_size, test_size])
 
-# 4. wrap in DataLoaders
-train_loader = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=True,  num_workers=16, pin_memory=True)
-test_loader  = DataLoader(test_ds,  batch_size=cfg.batch_size, shuffle=False, num_workers=16, pin_memory=True)
+    # 4. wrap in DataLoaders
+    train_loader = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=True,  num_workers=16, pin_memory=True)
+    test_loader  = DataLoader(test_ds,  batch_size=cfg.batch_size, shuffle=False, num_workers=16, pin_memory=True)
 
-# deactivate transforms for test loader
-test_loader.dataset.dataset.do_transform = False  
+    # deactivate transforms for test loader
+    test_loader.dataset.dataset.do_transform = False  
 
-# create init landmarks
-seed_landmarks = get_seeds_dataset(train_loader,device,cfg) # new not tested on mcd
+    # create init landmarks
+    seed_landmarks = get_seeds_dataset(train_loader,device,cfg) # new not tested on mcd
 
-if plot_landmarks:
-    plt.ion()
-    plt.show()
-    plt.scatter(curr_poses[:,1], curr_poses[:,2])
-    plt.scatter(seed_landmarks[:,0], seed_landmarks[:,1])
-    plt.draw()
-    plt.pause(0.001)
+    if plot_landmarks:
+        plt.ion()
+        plt.show()
+        plt.scatter(curr_poses[:,1], curr_poses[:,2])
+        plt.scatter(seed_landmarks[:,0], seed_landmarks[:,1])
+        plt.draw()
+        plt.pause(0.001)
 
-# init network
-print('Num landmarks: ',seed_landmarks.shape[0])
-seed_landmarks_cpy = seed_landmarks.copy()
+    # init network
+    print('Num landmarks: ',seed_landmarks.shape[0])
+    seed_landmarks_cpy = seed_landmarks.copy()
 
-model = bev_sld_net(torch.from_numpy(seed_landmarks_cpy)).to(device)
-    
-# print number of parameters
-pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-print(f"Num model params: {pytorch_total_params}")
-
-loss_idx_value = 0
-bestEpoch = 0
-
-# init
-loss_fn = landmark_location_and_corresp_loss
-optimizer = optim.SGD(model.parameters(), lr=cfg.start_lr,momentum=0.9)
-
-target_factor =  cfg.final_lr / cfg.start_lr
-decr_per_epoch = target_factor ** (1.0/cfg.num_epochs)
-
-scheduler = StepLR(optimizer, step_size=1, gamma=decr_per_epoch)
-
-
-
-np.save(result_dir+'seed_landmarks.npy', seed_landmarks)
-
-if Save_Landmarks is True:
-    save_lm_dir = result_dir + 'landmarks_per_ep/'
-    os.makedirs(save_lm_dir, exist_ok=True)
-
-lm_idx = 0
-
-for epoch in range(cfg.num_epochs):
-
-    # train one epoch
-    for inputs, labels in train_loader:
-
-        inputs, labels = inputs.to(device), labels.to(device)
-
-        heat_map, corresp, coords = model(inputs)
-
-        loss, lm_dist_error, ce_error = loss_fn(heat_map,corresp,coords,labels,inputs,cfg)
+    model = bev_sld_net(torch.from_numpy(seed_landmarks_cpy)).to(device)
         
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
-        
-        if Save_Landmarks is True:
-            curr_coords = coords.cpu().detach().numpy()[:,:]
-            x, y = curr_coords.T
-            save_lm_dir = result_dir + 'landmarks_per_ep/'
-            curr_lm_file = save_lm_dir + 'landmarks_epoch_' + str(lm_idx) + '.npy'
-            
-            np.save(curr_lm_file, curr_coords)
-            lm_idx = lm_idx + 1
+    # print number of parameters
+    pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Num model params: {pytorch_total_params}")
+
+    loss_idx_value = 0
+    bestEpoch = 0
+
+    # init
+    loss_fn = landmark_location_and_corresp_loss
+    optimizer = optim.SGD(model.parameters(), lr=cfg.start_lr,momentum=0.9)
+
+    target_factor =  cfg.final_lr / cfg.start_lr
+    decr_per_epoch = target_factor ** (1.0/cfg.num_epochs)
+
+    scheduler = StepLR(optimizer, step_size=1, gamma=decr_per_epoch)
 
 
-    # test dataset
-    torch.cuda.empty_cache()
 
+    np.save(result_dir+'seed_landmarks.npy', seed_landmarks)
 
-    # check validation data
-    loss_sum = 0.0
-    n_test = 0.0
-    with torch.no_grad():
-        for inputs, labels in test_loader:
+    if Save_Landmarks is True:
+        save_lm_dir = result_dir + 'landmarks_per_ep/'
+        os.makedirs(save_lm_dir, exist_ok=True)
+
+    lm_idx = 0
+
+    for epoch in range(cfg.num_epochs):
+
+        # train one epoch
+        for inputs, labels in train_loader:
 
             inputs, labels = inputs.to(device), labels.to(device)
 
             heat_map, corresp, coords = model(inputs)
 
-            loss, lm_dist_error, ce_error = loss_fn(heat_map, coords,corresp,labels,inputs,cfg)
+            loss, lm_dist_error, ce_error = loss_fn(heat_map,corresp,coords,labels,inputs,cfg)
+            
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+            if Save_Landmarks is True:
+                curr_coords = coords.cpu().detach().numpy()[:,:]
+                x, y = curr_coords.T
+                save_lm_dir = result_dir + 'landmarks_per_ep/'
+                curr_lm_file = save_lm_dir + 'landmarks_epoch_' + str(lm_idx) + '.npy'
+                
+                np.save(curr_lm_file, curr_coords)
+                lm_idx = lm_idx + 1
 
-            loss_sum += loss
-            n_test += 1.0
+
+        # test dataset
+        torch.cuda.empty_cache()
+
+        # check validation data
+        loss_sum = 0.0
+        n_test = 0.0
+        with torch.no_grad():
+            for inputs, labels in test_loader:
+
+                inputs, labels = inputs.to(device), labels.to(device)
+
+                heat_map, corresp, coords = model(inputs)
+
+                loss, lm_dist_error, ce_error = loss_fn(heat_map, corresp, coords,labels,inputs,cfg)
+
+                loss_sum += loss
+                n_test += 1.0
+            
+            curr_coords = coords.cpu().detach().numpy()[:,:]
+            x, y = curr_coords.T
+
+            res = epoch%3
+            if plot_landmarks:
+                if res == 0:
+                    plt.cla() 
+                plt.scatter(x, y)
+                plt.draw()
+                plt.pause(0.001)
+
         
-        curr_coords = coords.cpu().detach().numpy()[:,:]
-        x, y = curr_coords.T
+        val_loss = loss_sum / n_test
+        writer.add_scalar("Loss/combined_loss", val_loss, epoch)
+        writer.add_scalar("Loss/lm_distance_loss", lm_dist_error, epoch)
+        writer.add_scalar("Loss/corresp_ce_loss", ce_error, epoch)
+        writer.add_scalar("Loss/lr", get_lr(optimizer), epoch)
+        print('max / min x: ', np.max(curr_coords[:,0]), ' / ',np.min(curr_coords[:,0]))
+        print('max / min y: ', np.max(curr_coords[:,1]), ' / ',np.min(curr_coords[:,1]))
+        writer.flush()   
 
-        res = epoch%3
-        if plot_landmarks:
-            if res == 0:
-                plt.cla() 
-            plt.scatter(x, y)
-            plt.draw()
-            plt.pause(0.001)
+        # update scheduler
+        scheduler.step()    
 
-    
-    val_loss = loss_sum / n_test
-    writer.add_scalar("Loss/combined_loss", val_loss, epoch)
-    writer.add_scalar("Loss/lm_distance_loss", lm_dist_error, epoch)
-    writer.add_scalar("Loss/corresp_ce_loss", ce_error, epoch)
-    writer.add_scalar("Loss/lr", get_lr(optimizer), epoch)
-    print('max / min x: ', np.max(curr_coords[:,0]), ' / ',np.min(curr_coords[:,0]))
-    print('max / min y: ', np.max(curr_coords[:,1]), ' / ',np.min(curr_coords[:,1]))
-    writer.flush()   
+        torch.cuda.empty_cache()
 
-    # update scheduler
-    scheduler.step()    
+        print("Epoch:", epoch)
+        print("Best epoch:", bestEpoch)
+        print("Valid Loss:", val_loss)
 
-    torch.cuda.empty_cache()
-
-    print("Epoch:", epoch)
-    print("Best epoch:", bestEpoch)
-    print("Valid Loss:", val_loss)
-
-    if epoch == 0 or val_loss < minLoss:
-        minLoss = val_loss
-        torch.save(model, cfg.network_path)
-        torch.save(model, result_dir+'det.pth')
-        
-        best_model = model
-        print("Saved new model")
-        bestEpoch = epoch
+        if epoch == 0 or val_loss < minLoss:
+            minLoss = val_loss
+            torch.save(model, cfg.network_path)
+            torch.save(model, result_dir+'det.pth')
+            
+            best_model = model
+            print("Saved new model")
+            bestEpoch = epoch
 
 
+if __name__ == "__main__":
+    main()

@@ -39,30 +39,35 @@ def read_points(msg, field_names=("x", "y", "z"), skip_nans=True):
         yield vals
 
 
-# === MAIN ===
-cfg = get_config()
-shutil.rmtree(cfg.pc_dir, ignore_errors=True)
-os.makedirs(cfg.pc_dir, exist_ok=True)
+def main():
+    cfg = get_config()
+    shutil.rmtree(cfg.pc_dir, ignore_errors=True)
+    os.makedirs(cfg.pc_dir, exist_ok=True)
 
-iteration = -1
-use_every_nth = 1
+    iteration = -1
+    use_every_nth = 1
 
-with Reader(cfg.bag_path) as reader:
-    conns = [c for c in reader.connections if c.topic == cfg.pc_topic_name]
-    if not conns:
-        raise RuntimeError(f"Topic {cfg.pc_topic_name} not found in {cfg.bag_path}")
+    with Reader(cfg.bag_path) as reader:
+        conns = [c for c in reader.connections if c.topic == cfg.pc_topic_name]
+        if not conns:
+            raise RuntimeError(f"Topic {cfg.pc_topic_name} not found in {cfg.bag_path}")
 
-    for conn, timestamp, raw in tqdm(reader.messages(connections=conns)):
-        iteration += 1
-        if iteration % use_every_nth != 0:
-            continue
+        for conn, timestamp, raw in tqdm(reader.messages(connections=conns)):
+            iteration += 1
+            if iteration % use_every_nth != 0:
+                continue
 
-        msg = deserialize_ros1(raw, conn.msgtype)
-        msg_stamp_sec = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+            msg = deserialize_ros1(raw, conn.msgtype)
+            msg_stamp_sec = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
 
-        points = np.array(
-            list(read_points(msg, field_names=("x", "y", "z"), skip_nans=True)),
-            dtype=np.float32,
-        ).T  # shape (3, N)
+            points = np.array(
+                list(read_points(msg, field_names=("x", "y", "z"), skip_nans=True)),
+                dtype=np.float32,
+            ).T  # shape (3, N)
 
-        save_pcd_open3d(points, os.path.join(cfg.pc_dir, f"{msg_stamp_sec:.6f}.pcd"))
+            save_pcd_open3d(points, os.path.join(cfg.pc_dir, f"{msg_stamp_sec:.6f}.pcd"))
+
+
+
+if __name__ == "__main__":
+    main()

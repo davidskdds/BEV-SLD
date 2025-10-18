@@ -1,6 +1,14 @@
-# BEV-SLD
-We provide code to be able to reproduce our experiments on the MCD-dataset.
+# BEV-SLD: Self-Supervised Scene Landmark Detection for Global Localization with LiDAR Bird’s-Eye View Images
 
+<figure>
+<p align='left'>
+<img src="./fig/localization.gif" alt="drawing" width="900"/>
+</p>
+<figcaption>Fig. 1 - Global localization on the MCD-dataset.</figcaption>
+</figure>
+
+
+This repository provides the official implementation of **BEV-SLD**, including all scripts required to reproduce our experiments on the **MCD dataset**.
 
 # Requirements
 1. Create a conda environment
@@ -26,22 +34,23 @@ As all ground truth poses are defined in the vehicle frame, we used the calibrat
 The poses are provided in `gt_poses/mcd`.
 
 # Configuration
-We provide `.yaml` files that can be used for training/test configurations.
-In addition, parameters can also be set using argparse. argparse parameters overwrite `.yaml` parameter settings.
-Before preprocessing can start, the rosbag file paths have to be added.
-Therefore add the path where the downloaded rosbag is to your `.yaml` file.
+All configuration files are provided as `.yaml` files under `config/`.
 
-E.g. in `config/mcd_ntu_day_01_map.yaml` change the parameter bag_path to your rosbag path.
+- Each .yaml defines paths, hyperparameters, and dataset settings.
+- Command-line arguments (via `argparse`) override `.yaml` parameters.
+- Before preprocessing, ensure the bag_path parameter points to the correct rosbag file.
+
+For e.g. the mapping sequence settings in `config/mcd_ntu_day_01_map.yaml` change the parameter `bag_path` to your rosbag path.
 
 # Preprocessing
-First, we extract .pcd point clouds from the rosbags:  
+Convert ROS bag data to `.pcd` point clouds:  
 `python extract_pcs_rosbag.py --config config/mcd_ntu_day_01_map.yaml`
 
-Then, bev images and global coordinate maps are generated and saved as .tif images:  
+Create BEV images and global coordinate maps (saved as `.tif` files):  
 `python create_bev_images_and_coord_maps.py --config config/mcd_ntu_day_01_map.yaml`
 
 The preprocessing steps have to be performed only once for each dataset sequence.
 
 # Training
-To start the training on the mapping sequence, simply enter:  
+To train the BEV-SLD model on the mapping sequence, run:  
 `python train.py --config config/mcd_ntu_day_01_map.yaml`
