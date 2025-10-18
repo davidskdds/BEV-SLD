@@ -1,0 +1,12 @@
+torch==2.3.1
+torchvision==0.18.1
+rosbags
+scipy
+numpy
+argparse
+tqdm
+open3d
+pyyaml
+matplotlib
+tifffile
+pillow

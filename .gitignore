@@ -1,0 +1,8 @@
+*.pcd
+*.tiff
+*.tif
+*.png
+*.pdf
+*.svg
+*.jpg
+__pycache__

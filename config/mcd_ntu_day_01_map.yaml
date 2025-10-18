@@ -1,0 +1,50 @@
+
+# config file for mcd dataset
+
+# rosbag
+bag_path: '/_path_/_to_/ntu_day_01_os1_128.bag'
+pc_topic_name: '/os_cloud_node/points'
+pose_file_dir: 'gt_poses/mcd/ntu_day_01_pose_in_os_frame.csv'
+pc_dir: 'datasets/mcd/ntu_day_01_os1/pcs'
+dataset_dir: 'datasets/mcd/ntu_day_01_os1'
+network_path: 'datasets/mcd/ntu_day_01_os1/models/bev_sld_model.pth'
+result_dir: '/first_trial'
+
+# if this flag is set to true, no coordinate maps are (soft labels) are generated and also training config parameters are not required in yaml
+eval_only: false
+
+### PREPROCESSING
+# reduce data to first n point clouds (-1 means use all data), is used in create_bev_images_and_coord_maps.py
+reduce_dataset_first_n: -1
+
+# minimum distance between two consecutive keyframes [m]
+keyframe_res: 0.5
+
+# pixel size [m]
+grid_res: 0.2
+
+# image dimension n_xy x n_xy
+n_xy: 512
+
+# optional x-axis offset for non-360 deg scanners. For all experiments this was set to 0.0
+x_offset: 0.0
+
+# inlier distance for RANSAC during localization[m]
+ransac_inlier_dist: 0.5
+
+### TRAINING
+# loss weight parameters, see paper
+loss_alpha: 1.0
+loss_beta: 30.0
+loss_gamma: 3.0
+batch_size: 60
+test_frac: 0.03
+num_epochs: 600
+
+# controls, how much patches are used per bev image in loss. n_patches = (n_div-2*n_padding)^2
+n_div: 16
+n_padding: 1
+lm_density: 0.2
+start_lr: 0.0004
+final_lr: 0.00004
+cuda_id: 0
