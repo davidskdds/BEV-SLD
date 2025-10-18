@@ -1,6 +1,6 @@
 torch==2.3.1 # adjust to match your cuda version
 torchvision==0.18.1 # adjust to match your cuda version
-rosbags
+rosbags==0.9.14
 scipy
 numpy
 argparse
@@ -10,3 +10,5 @@ pyyaml
 matplotlib
 tifffile
 pillow
+scikit-image==0.20.0
+tensorboard

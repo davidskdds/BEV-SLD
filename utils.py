@@ -16,7 +16,6 @@ from scipy.spatial import cKDTree
 import matplotlib.pyplot as plt
 from matplotlib.patches import ConnectionPatch
 from matplotlib.transforms import Affine2D
-import cv2
 from scipy.linalg import logm, expm
 from torchvision.transforms import RandomErasing
 import torchvision.transforms as T

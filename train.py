@@ -5,13 +5,10 @@ from PIL import Image
 from torch.utils.data import Dataset,DataLoader,random_split
 import torch
 from sklearn.model_selection import train_test_split
-
-# from unet import unet_normals
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import open3d as o3d
 from network import bev_sld_net
-import cv2
 from random import randrange
 import random
 import torchvision.transforms.functional as TF
@@ -20,7 +17,7 @@ import torch.nn.functional as F
 
 from matplotlib import pyplot as plt
 import torch.nn as nn
-from utils import get_config,load_tiff_images_to_numpy_tifffile,read_poses,get_lr,save_config_as_yaml,create_init_landmarks
+from utils import get_config,read_poses,get_lr,save_config_as_yaml
 import tifffile
 from augment import transform_data
 
@@ -37,11 +34,11 @@ Save_Landmarks = True
 
 
 # generate initial landmarks from training dataset
-def get_seeds_dataset(train_loader,device_in,cfg):
+def get_initial_lms_dataset(train_loader,device_in,cfg):
     
     valid_landmarks = torch.zeros(1, 2, device=device_in)
     
-    # deactivate transform for seed generation
+    # deactivate transform for initial landmarks generation
     train_loader.dataset.dataset.do_transform = False
     
     with torch.no_grad():
@@ -49,20 +46,20 @@ def get_seeds_dataset(train_loader,device_in,cfg):
 
             inputs, labels = inputs.to(device_in), labels.to(device_in)
 
-            valid_landmarks = get_seeds_batch(labels,inputs,cfg.n_div,cfg.n_padding,valid_landmarks)
+            valid_landmarks = get_initial_lms_batch(labels,inputs,cfg.n_div,cfg.n_padding,valid_landmarks)
     
     # activate transform again
     train_loader.dataset.dataset.do_transform = True        
     
-    seed_landmarks_np = valid_landmarks.cpu().detach().numpy() 
+    initial_landmarks_np = valid_landmarks.cpu().detach().numpy() 
     
     
     # add random offset to each point
-    seed_landmarks_np += (2.0*np.random.rand(seed_landmarks_np.shape[0],2) -1.0)* 0.5*cfg.grid_res *cfg.n_xy / cfg.n_div
+    initial_landmarks_np += (2.0*np.random.rand(initial_landmarks_np.shape[0],2) -1.0)* 0.5*cfg.grid_res *cfg.n_xy / cfg.n_div
     
     # downsampling
     # Step 2: Add z=0 to each point -> becomes (n x 3)
-    points_3d = np.hstack((seed_landmarks_np, np.zeros((seed_landmarks_np.shape[0], 1))))
+    points_3d = np.hstack((initial_landmarks_np, np.zeros((initial_landmarks_np.shape[0], 1))))
 
     # Step 3: Create Open3D point cloud
     pcd = o3d.geometry.PointCloud()
@@ -73,12 +70,12 @@ def get_seeds_dataset(train_loader,device_in,cfg):
     pcd_down = pcd.voxel_down_sample(voxel_size=voxel_size)
 
     # Step 5: Access downsampled points
-    downsampled_seed_landmarks = np.asarray(pcd_down.points)[:,0:2]
+    downsampled_initial_landmarks = np.asarray(pcd_down.points)[:,0:2]
     
-    return downsampled_seed_landmarks
+    return downsampled_initial_landmarks
 
 # generate initial landmarks from a batch
-def get_seeds_batch(target,density_imgs,n,padding,valid_landmarks):
+def get_initial_lms_batch(target,density_imgs,n,padding,valid_landmarks):
 
     nrc = int(density_imgs.shape[3] / n)
     error_sum = 0.0
@@ -110,9 +107,6 @@ def get_seeds_batch(target,density_imgs,n,padding,valid_landmarks):
 
 
     return valid_landmarks
-
-
-
 
 
 def landmark_location_and_corresp_loss(heat_map, corresp, coords, global_coordinate_map,density_imgs,cfg):
@@ -221,8 +215,6 @@ def landmark_location_and_corresp_loss(heat_map, corresp, coords, global_coordin
     return combined_loss, lm_dist_error, ce_error
 
 
-
-
 class LandmarkDetDataset(Dataset):
     def __init__(self, input_dir, label_dirs, transform=None, dtype=np.float32):
         """
@@ -328,21 +320,24 @@ def main():
     test_loader.dataset.dataset.do_transform = False  
 
     # create init landmarks
-    seed_landmarks = get_seeds_dataset(train_loader,device,cfg) # new not tested on mcd
+    print('Create initial landmarks . . .')
+    initial_landmarks = get_initial_lms_dataset(train_loader,device,cfg)
 
     if plot_landmarks:
         plt.ion()
         plt.show()
         plt.scatter(curr_poses[:,1], curr_poses[:,2])
-        plt.scatter(seed_landmarks[:,0], seed_landmarks[:,1])
+        plt.scatter(initial_landmarks[:,0], initial_landmarks[:,1])
         plt.draw()
         plt.pause(0.001)
 
     # init network
-    print('Num landmarks: ',seed_landmarks.shape[0])
-    seed_landmarks_cpy = seed_landmarks.copy()
+    print('Num landmarks: ',initial_landmarks.shape[0])
+    initial_landmarks_cpy = initial_landmarks.copy()
 
-    model = bev_sld_net(torch.from_numpy(seed_landmarks_cpy)).to(device)
+    # initialize model with initial landmarks
+    print('Initialize model . . .')
+    model = bev_sld_net(torch.from_numpy(initial_landmarks_cpy)).to(device)
         
     # print number of parameters
     pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -362,7 +357,7 @@ def main():
 
 
 
-    np.save(result_dir+'seed_landmarks.npy', seed_landmarks)
+    np.save(result_dir+'initial_landmarks.npy', initial_landmarks)
 
     if Save_Landmarks is True:
         save_lm_dir = result_dir + 'landmarks_per_ep/'
@@ -430,8 +425,8 @@ def main():
         writer.add_scalar("Loss/lm_distance_loss", lm_dist_error, epoch)
         writer.add_scalar("Loss/corresp_ce_loss", ce_error, epoch)
         writer.add_scalar("Loss/lr", get_lr(optimizer), epoch)
-        print('max / min x: ', np.max(curr_coords[:,0]), ' / ',np.min(curr_coords[:,0]))
-        print('max / min y: ', np.max(curr_coords[:,1]), ' / ',np.min(curr_coords[:,1]))
+        print('landmarks max / min x: ', np.max(curr_coords[:,0]), ' / ',np.min(curr_coords[:,0]))
+        print('landmarks max / min y: ', np.max(curr_coords[:,1]), ' / ',np.min(curr_coords[:,1]))
         writer.flush()   
 
         # update scheduler
