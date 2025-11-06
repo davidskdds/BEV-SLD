@@ -8,7 +8,7 @@ This repository provides the official implementation of **BEV-SLD**, including a
 We provide a bash script to set up a virtual environment.  
 Before creating the environment, please adjust the PyTorch version in `requirements.txt` to match your local CUDA version.  
 Then, to create a virtual environment named `bev_sld_env` locally, run:  
-`sh create_env.sh`
+`bash create_env.sh`
 
 
 # Dataset
@@ -58,8 +58,11 @@ To train the BEV-SLD model on the mapping sequence, run:
 
 # Localization
 To use a trained network for localization, run:  
-`python train.py --config config/mcd_ntu_day_01_map.yaml`
+`python localization.py --config config/mcd_ntu_day_01_map.yaml`
 
 # Evaluation
 To evaluate the success rate (SR) and median errors, run:  
 `python eval_poses.py --config config/mcd_ntu_day_01_map.yaml`
+
+To evaluate the model on a test sequence, follow the same steps as above, excluding the training stage. Run the scripts with:  
+`--config config/mcd_ntu_day_10.yaml`

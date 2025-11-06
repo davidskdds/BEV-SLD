@@ -59,14 +59,13 @@ def main():
     stamps = np.float64(stamps)
 
     # load model
-    bev_sld_model = torch.load(cfg.network_path, map_location=torch.device('cpu')).to(device)
+    bev_sld_model = torch.load(cfg.network_path, map_location=torch.device('cpu'),weights_only=False).to(device)
     bev_sld_model.eval()
         
-
     local_coords = create_local_coord_map(cfg.n_xy, cfg.grid_res)
+    
     # add offset
     local_coords[0,:] += cfg.x_offset
-
 
     x_flattened = local_coords[0].flatten()  # Flatten x-channel
     y_flattened = local_coords[1].flatten()  # Flatten y-channel
@@ -76,6 +75,7 @@ def main():
     poses = None
     poses = np.zeros((density_images.shape[0],8))
     
+    # max number of landmarks per image
     n_max = int( (cfg.n_div - cfg.n_padding)**2*cfg.lm_density)
 
     print("Start localization . . .")
@@ -94,12 +94,8 @@ def main():
         dists_lm = np.zeros((n_max,1))
         iter = 0
 
-        if cfg.use_superpoint is True:
-            peaks = pts[0:2,0:n_max].astype(int).T
-        else:
-            peaks = peak_local_max(heat_map,
-                            min_distance=20,num_peaks=n_max)
-
+        peaks = peak_local_max(heat_map,
+                        min_distance=20,num_peaks=n_max)
 
         for j in range(peaks.shape[0]):
             row,col = peaks[j,0],peaks[j,1]

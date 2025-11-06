@@ -26,7 +26,6 @@ def get_config():
     parser.add_argument('--config', type=str, default='config/mcd_ntu_day_01_map.yaml', help='Directory of config file.')
     
     parser.add_argument('--eval_only', type=bool, help='Wheter this config is just for evaluation sequence without training.')
-    parser.add_argument('--use_superpoint', type=bool, default=False, help='Wheter to use SuperPoint instead of self-supervised scene landmark detection.')
     parser.add_argument('--pose_file_dir', type=str, help='Directory of pose file in TUM format (.csv/.txt).')
     parser.add_argument('--pc_dir', type=str, help='Directory of point clouds in .pcd format.')
     parser.add_argument('--dataset_dir', type=str, help='Directory where bev images and labels are saved.')
@@ -37,7 +36,6 @@ def get_config():
     parser.add_argument('--bag_path', type=float, help='File path of the rosbag.')
     parser.add_argument('--pc_topic_name', type=float, help='Topic name of the point cloud2 in the rosbag.')
     
-
     # training
     parser.add_argument('--reduce_dataset_first_n', type=int, help='Reduce dataset in dataset creation to first n keyframes. Set to -1 to use all keyframes.')
     parser.add_argument('--batch_size', type=int, help='Batch size for training.')

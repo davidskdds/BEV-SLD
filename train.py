@@ -282,7 +282,7 @@ def main():
     cfg = get_config()
 
     # save
-    save_config_as_yaml(cfg, 'det_cfg.yaml')
+    save_config_as_yaml(cfg, 'config.yaml')
 
     # read poses
     curr_poses = read_poses(cfg.pose_file_dir)
@@ -354,8 +354,6 @@ def main():
     decr_per_epoch = target_factor ** (1.0/cfg.num_epochs)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=decr_per_epoch)
-
-
 
     np.save(result_dir+'initial_landmarks.npy', initial_landmarks)
 
