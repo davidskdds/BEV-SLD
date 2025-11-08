@@ -2,7 +2,7 @@ torch==2.3.1 # adjust to match your cuda version
 torchvision==0.18.1 # adjust to match your cuda version
 rosbags==0.9.14
 scipy
-numpy
+numpy<2.0
 argparse
 tqdm
 open3d

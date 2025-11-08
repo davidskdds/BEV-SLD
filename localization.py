@@ -6,19 +6,11 @@ from PIL import Image
 from torch.utils.data import DataLoader
 import torch
 import matplotlib.pyplot as plt
-from ransac_rigid_trafo import ransac_rigid_transform,ransac_3d
-import torch.nn as nn
-from random import randrange
-import random
-import torchvision.transforms.functional as TF
-import sys
+from ransac_rigid_trafo import ransac_3d
 from scipy.spatial.transform import Rotation
 from skimage.feature import peak_local_max
-
-from utils import extract_timestamp
-from timeit import default_timer as timer
 from tqdm import tqdm
-from utils import get_config,create_local_coord_map
+from utils import get_config,create_local_coord_map,extract_timestamp
 from matplotlib.patches import Patch
 
 
@@ -35,8 +27,6 @@ def load_tiff_images_to_numpy(directory):
         images_list.append(image_np)
 
         stamp_as_string = extract_timestamp(image_path)
-
-        # Convert to uint64
         stamps[i] = np.float64(stamp_as_string)
         i = i + 1
 
@@ -59,9 +49,10 @@ def main():
     stamps = np.float64(stamps)
 
     # load model
-    bev_sld_model = torch.load(cfg.network_path, map_location=torch.device('cpu'),weights_only=False).to(device)
+    bev_sld_model = torch.load(cfg.network_path,weights_only=False).to(device)
     bev_sld_model.eval()
-        
+    
+    # create local coordinate map for correspondences
     local_coords = create_local_coord_map(cfg.n_xy, cfg.grid_res)
     
     # add offset
@@ -81,9 +72,13 @@ def main():
     print("Start localization . . .")
     for i in tqdm(range(density_images.shape[0])): 
 
+        ### LOCALIZATION
+        
+        # create torch tensor
         input_tensor = torch.from_numpy(density_images[i:i+1,:,:,:]).float().to(device)
 
         with torch.no_grad():
+            
             # execute model
             heat_map,corresp,coords  = bev_sld_model(input_tensor)
             heat_map, coords = heat_map[0,0,:,:].cpu().detach().numpy(), coords.cpu().detach().numpy()
@@ -94,10 +89,13 @@ def main():
         dists_lm = np.zeros((n_max,1))
         iter = 0
 
+        # find local peaks in heatmap
         peaks = peak_local_max(heat_map,
                         min_distance=20,num_peaks=n_max)
 
         for j in range(peaks.shape[0]):
+            
+            # current peaks row col position
             row,col = peaks[j,0],peaks[j,1]
             
             # get local xy
@@ -110,10 +108,12 @@ def main():
             # extract pixel correspondence scores
             pixel_corresp_scores = corresp[:,row_class,col_class]
 
+            # extract landmark index
             lm_id = np.argmax(pixel_corresp_scores)
             lm_id = np.min([lm_id,coords.shape[0]-1])  # ensure lm_id is within bounds
             val = pixel_corresp_scores[lm_id]
 
+            # get landmark coordinates using index
             xy_lm = coords[lm_id,:] 
             
             # save
@@ -141,12 +141,13 @@ def main():
         # save pose
         poses[i,:] = newPose
         
-        ## plot
+        ### VISUALIZATION
         ax = plt.gca()
         ax.cla() # clear things for fresh plot
         
         ax.set_title("Global Localization Visualization")
-    
+
+        # limits
         x_min = np.min(coords[:, 0]) - 5
         x_max = np.max(coords[:, 0]) + 5
         y_min = np.min(coords[:, 1]) - 5
@@ -187,6 +188,7 @@ def main():
     result_dir = cfg.dataset_dir + '/results'+cfg.result_dir + '/'
     os.makedirs(result_dir, exist_ok=True)
 
+    # save pose file
     np.savetxt(result_dir + 'Poses.txt', poses, delimiter=' ', comments='', fmt='%.6f')
     print('Saved estimated poses to '+cfg.result_dir)
 
