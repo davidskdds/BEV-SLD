@@ -3,7 +3,6 @@ os.environ["OMP_NUM_THREADS"] = "6"
 os.environ["MKL_NUM_THREADS"] = "6"
 import numpy as np
 from PIL import Image
-from torch.utils.data import DataLoader
 import torch
 import matplotlib.pyplot as plt
 from ransac_rigid_trafo import ransac_3d
@@ -61,10 +60,6 @@ def main():
     # add offset
     local_coords[0,:] += cfg.x_offset
 
-    x_flattened = local_coords[0].flatten()  # Flatten x-channel
-    y_flattened = local_coords[1].flatten()  # Flatten y-channel
-    local_reshaped = np.column_stack((x_flattened, y_flattened,np.zeros(y_flattened.shape[0])))
-
     # init poses
     poses = None
     poses = np.zeros((density_images.shape[0],8))
@@ -89,7 +84,7 @@ def main():
 
         xyz_local = np.zeros((n_max,3))
         xyz_scene = np.zeros((n_max,3))
-        dists_lm = np.zeros((n_max,1))
+
         iter = 0
 
         # find local peaks in heatmap
@@ -114,7 +109,6 @@ def main():
             # extract landmark index
             lm_id = np.argmax(pixel_corresp_scores)
             lm_id = np.min([lm_id,coords.shape[0]-1])  # ensure lm_id is within bounds
-            val = pixel_corresp_scores[lm_id]
 
             # get landmark coordinates using index
             xy_lm = coords[lm_id,:] 

@@ -2,7 +2,7 @@
 
 <p align="center"> <img src="./fig/localization.gif" alt="Global localization on the MCD dataset" width="900"/> </p> <p align="center"><em>Fig. 1 — Global localization on the MCD dataset.</em></p>
 
-This repository provides the official implementation of **BEV-SLD**, including all scripts required to reproduce our experiments on the **MCD dataset**.
+This repository provides a **BEV-SLD** demo that showcases localization on samples from the **MCD dataset** (https://mcdviral.github.io/).
 
 # Setup & Requirements
 We provide a bash script to set up a virtual environment.  
@@ -22,7 +22,7 @@ First, activate the virtual environment created in the previous step:
 `source bev_sld_env/bin/activate`  
 
 Then, run the localization demo:  
-`python localization.py --config config/mcd_ntu_day_10_map.yaml`  
+`python localization.py --config config/mcd_ntu_day_10.yaml`  
 
 A plot showing the landmarks and the estimated poses will appear.  
-**The full code will be released upon paper acceptance.**
+**The full code, including training scripts, will be released upon paper acceptance.**

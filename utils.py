@@ -23,7 +23,7 @@ import torchvision.transforms as T
 def get_config():
     parser = argparse.ArgumentParser(description='BEVL2Loc')
 
-    parser.add_argument('--config', type=str, default='config/mcd_ntu_day_01_map.yaml', help='Directory of config file.')
+    parser.add_argument('--config', type=str, default='config/mcd_ntu_day_10.yaml', help='Directory of config file.')
     
     parser.add_argument('--eval_only', type=bool, help='Wheter this config is just for evaluation sequence without training.')
     parser.add_argument('--pose_file_dir', type=str, help='Directory of pose file in TUM format (.csv/.txt).')
