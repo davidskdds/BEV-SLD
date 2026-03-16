@@ -1,36 +1,28 @@
 import os
-import sys
 import numpy as np
-from PIL import Image
 from torch.utils.data import Dataset,DataLoader,random_split
 import torch
-from sklearn.model_selection import train_test_split
 import torch.optim as optim
 import matplotlib.pyplot as plt
 import open3d as o3d
 from network import bev_sld_net
-from random import randrange
-import random
-import torchvision.transforms.functional as TF
 from torch.optim.lr_scheduler import StepLR
 import torch.nn.functional as F
-
 from matplotlib import pyplot as plt
 import torch.nn as nn
 from utils import get_config,read_poses,get_lr,save_config_as_yaml
 import tifffile
 from augment import transform_data
 
-# tensorboard --logdir=runs/ --host localhost --port 8088 --reload_multifile True
-# browser: http://localhost:8088
-
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter()
 
-import math
+# start in terminal: 'tensorboard --logdir=runs/ --host localhost --port 8088 --reload_multifile True'
+# open in browser: http://localhost:8088
 
-plot_landmarks = False
-Save_Landmarks = True
+# activate if needed
+PLOT_LANDMARKS = False
+SAVE_LANDMARKS = False
 
 
 # generate initial landmarks from training dataset
@@ -132,7 +124,7 @@ def landmark_location_and_corresp_loss(heat_map, corresp, coords, global_coordin
         Ground-truth coordinate grid of shape (B, 2, H, W), 
         containing the global x and y coordinates for each pixel.
     density_imgs (torch.Tensor): 
-        Continuous density maps of shape (B, 1, H, W), 
+        Density maps of shape (B, 1, H, W), 
         marking valid landmark regions.
     cfg (object): 
         Configuration object containing required hyperparameters:
@@ -154,7 +146,6 @@ def landmark_location_and_corresp_loss(heat_map, corresp, coords, global_coordin
     # Notes
     - The heatmap is divided into patches via `torch.nn.functional.unfold`.
     - The predicted landmark is computed as the heatmap-weighted mean of (x, y).
-    - Landmark distance errors beyond a patch-dependent threshold are excluded.
     - The final combined loss = α * lm_dist_error + β * ce_error.
     """
     
@@ -275,8 +266,6 @@ class LandmarkDetDataset(Dataset):
 
 def main():
     writer = SummaryWriter()
-    plot_landmarks = False
-    Save_Landmarks = True
 
     # read config
     cfg = get_config()
@@ -323,7 +312,7 @@ def main():
     print('Create initial landmarks . . .')
     initial_landmarks = get_initial_lms_dataset(train_loader,device,cfg)
 
-    if plot_landmarks:
+    if PLOT_LANDMARKS:
         plt.ion()
         plt.show()
         plt.scatter(curr_poses[:,1], curr_poses[:,2])
@@ -344,7 +333,7 @@ def main():
     print(f"Num model params: {pytorch_total_params}")
 
     loss_idx_value = 0
-    bestEpoch = 0
+    best_epoch = 0
 
     # init
     loss_fn = landmark_location_and_corresp_loss
@@ -357,7 +346,7 @@ def main():
 
     np.save(result_dir+'initial_landmarks.npy', initial_landmarks)
 
-    if Save_Landmarks is True:
+    if SAVE_LANDMARKS is True:
         save_lm_dir = result_dir + 'landmarks_per_ep/'
         os.makedirs(save_lm_dir, exist_ok=True)
 
@@ -378,7 +367,7 @@ def main():
             loss.backward()
             optimizer.step()
             
-            if Save_Landmarks is True:
+            if SAVE_LANDMARKS is True:
                 curr_coords = coords.cpu().detach().numpy()[:,:]
                 x, y = curr_coords.T
                 save_lm_dir = result_dir + 'landmarks_per_ep/'
@@ -410,7 +399,7 @@ def main():
             x, y = curr_coords.T
 
             res = epoch%3
-            if plot_landmarks:
+            if PLOT_LANDMARKS:
                 if res == 0:
                     plt.cla() 
                 plt.scatter(x, y)
@@ -433,17 +422,17 @@ def main():
         torch.cuda.empty_cache()
 
         print("Epoch:", epoch)
-        print("Best epoch:", bestEpoch)
+        print("Best epoch:", best_epoch)
         print("Valid Loss:", val_loss)
 
-        if epoch == 0 or val_loss < minLoss:
-            minLoss = val_loss
+        if epoch == 0 or val_loss < min_loss:
+            min_loss = val_loss
             torch.save(model, cfg.network_path)
             torch.save(model, result_dir+'det.pth')
             
             best_model = model
             print("Saved new model")
-            bestEpoch = epoch
+            best_epoch = epoch
 
 
 if __name__ == "__main__":

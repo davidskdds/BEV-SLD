@@ -1,5 +1,3 @@
-# import rosbag
-# import sensor_msgs.point_cloud2 as pc2
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import open3d as o3d
