@@ -23,7 +23,7 @@ Geoinformatics (ifp), University of Stuttgart](https://www.ifp.uni-stuttgart.de/
 # Overview
 This repository provides the official implementation of **BEV-SLD**, including all scripts required to reproduce our experiments on the **MCD dataset**.
 
-For a quick test with pretrained models, see the [`demo` branch](https://github.com/davidskdds/BEV-SLD/tree/demo). Preprocessed BEV images are included, so no dataset download is required for the demo.
+For a quick test with a pretrained model, see the [`demo` branch](https://github.com/davidskdds/BEV-SLD/tree/demo). Preprocessed BEV images are included, so no dataset download is required for the demo.
 
 # Setup & Requirements
 We provide a bash script for setting up a virtual environment.
