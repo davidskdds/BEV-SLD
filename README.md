@@ -3,6 +3,9 @@
 
 <a href="https://arxiv.org/abs/2603.17159"><img src="https://img.shields.io/badge/arXiv-2603.17159-b31b1b" alt="arXiv"></a>
 
+[David Skuddis](https://www.ifp.uni-stuttgart.de/institut/team/Skuddis/), [Vincent Ress](https://www.ifp.uni-stuttgart.de/institut/team/Ress/), [Wei Zhang](https://willyzw.github.io/), [Vincent Ofosu Nyako](https://www.ifp.uni-stuttgart.de/institut/team/Ofosu-Nyako/), [Norbert Haala](https://www.ifp.uni-stuttgart.de/institut/team/Haala-00001/)
+
+
 **[Institute for Photogrammetry and
 Geoinformatics (ifp), University of Stuttgart](https://www.ifp.uni-stuttgart.de/en/)**
 
