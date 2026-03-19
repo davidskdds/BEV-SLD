@@ -1,0 +1,47 @@
+
+# config file for wild places dataset
+
+# directories and paths
+
+# bag_path needs to be adjusted, all other paths are relative paths
+bag_path: ''
+
+# relative paths
+pc_topic_name: ''
+pose_file_dir: '_tbd_/Venman/V-01/poses_aligned.csv'
+pc_dir: '_tbd_/Venman/V-01/Clouds'
+dataset_dir: 'datasets/wild_places/V-01'
+network_path: 'datasets/wild_places/V-03/models/bev_sld_model.pth'
+result_dir: '/first_trial'
+
+# if this flag is set to true, no coordinate maps (soft labels) are generated and also training config parameters are not required in yaml
+eval_only: true
+
+### PREPROCESSING
+# reduce data to first n point clouds (-1 means use all data), is used in create_bev_images_and_coord_maps.py
+reduce_dataset_first_n: -1
+
+# minimum distance between two consecutive keyframes [m]
+keyframe_res: 0.0
+
+# pixel size [m]
+grid_res: 0.2
+
+# image dimension n_xy x n_xy
+n_xy: 512
+
+# optional x-axis offset for non-360 deg scanners. For all experiments this was set to 0.0
+x_offset: 0.0
+
+# inlier distance for RANSAC during localization[m]
+ransac_inlier_dist: 1.5
+
+# landmark density, for details check the paper. It is also used during localization as threshold for local peak detection
+lm_density: 0.2
+
+# controls, how much patches are used per bev image in loss. n_patches = (n_div-2*n_padding)^2
+# the parameters are also used for maximum number of landmarks in local peak detection during localization
+n_div: 16
+n_padding: 1
+
+cuda_id: 0
