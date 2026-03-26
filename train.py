@@ -8,20 +8,18 @@ import open3d as o3d
 from network import bev_sld_net
 from torch.optim.lr_scheduler import StepLR
 import torch.nn.functional as F
-from matplotlib import pyplot as plt
 import torch.nn as nn
 from utils import get_config,read_poses,get_lr,save_config_as_yaml
 import tifffile
 from augment import transform_data
 
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter()
 
 # start in terminal: 'tensorboard --logdir=runs/ --host localhost --port 8088 --reload_multifile True'
 # open in browser: http://localhost:8088
 
 # activate if needed
-PLOT_LANDMARKS = False
+PLOT_LANDMARKS = True
 SAVE_LANDMARKS = False
 
 
@@ -70,10 +68,6 @@ def get_initial_lms_dataset(train_loader,device_in,cfg):
 def get_initial_lms_batch(target,density_imgs,n,padding,valid_landmarks):
 
     nrc = int(density_imgs.shape[3] / n)
-    error_sum = 0.0
-    weight_sum = 0
-    loss_sum = 0.0
-    n_patches = 0
 
     for row in range(0+padding,n-padding):
         for col in range(0+padding,n-padding):
@@ -150,13 +144,8 @@ def landmark_location_and_corresp_loss(heat_map, corresp, coords, global_coordin
     """
     
     # n = 16
-    nrc = int(heat_map.shape[3] / cfg.n_div)
-    weight_sum = 0
-    loss_sum = 0.0
-    
     b = heat_map.shape[3] // cfg.n_div
-    b_corresp = corresp.shape[3] // cfg.n_div
-    
+
     # new shapes: (B, b*b, n*n)
     from_padding = cfg.n_padding * b
     to_padding = cfg.n_div * b - cfg.n_padding * b
@@ -332,7 +321,6 @@ def main():
     pytorch_total_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Num model params: {pytorch_total_params}")
 
-    loss_idx_value = 0
     best_epoch = 0
 
     # init
@@ -430,7 +418,6 @@ def main():
             torch.save(model, cfg.network_path)
             torch.save(model, result_dir+'det.pth')
             
-            best_model = model
             print("Saved new model")
             best_epoch = epoch
 

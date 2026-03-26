@@ -1,27 +1,16 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import open3d as o3d
-from tqdm import tqdm
 import tifffile
 import argparse
 import yaml
 import os
-import random
 import torch
-import torchvision.transforms.functional as TF
-import torch.nn.functional as F
-from scipy.spatial import cKDTree
-import matplotlib.pyplot as plt
-from matplotlib.patches import ConnectionPatch
-from matplotlib.transforms import Affine2D
-from scipy.linalg import logm, expm
-from torchvision.transforms import RandomErasing
-import torchvision.transforms as T
 
 def get_config():
     parser = argparse.ArgumentParser(description='BEVL2Loc')
 
-    parser.add_argument('--config', type=str, default='config/mcd_ntu_day_01_ref.yaml', help='Directory of config file.')
+    parser.add_argument('--config', type=str, default='config/int_cdc_map.yaml', help='Directory of config file.')
     
     parser.add_argument('--eval_only', type=bool, help='Wheter this config is just for evaluation sequence without training.')
     parser.add_argument('--pose_file_dir', type=str, help='Directory of pose file in TUM format (.csv/.txt).')
@@ -373,10 +362,7 @@ class ErrorStatistics:
         
         alpha = np.arctan2(delta_R[1, 0], delta_R[0, 0])
 
-        r_err = np.abs(alpha)*180.0/np.pi 
-        
-        if r_err > 5:
-            test = 1
+        r_err = np.abs(alpha)*180.0/np.pi
 
         # Store
         self.trans_errors[self.count] = t_err
@@ -410,18 +396,8 @@ class ErrorStatistics:
         else:
             return False
 
-
-    def get_all_errors(self):
-        return self.trans_errors[:self.count], self.rot_errors[:self.count]
-
     def get_mean_errors(self):
         return np.mean(self.trans_errors[:self.count]), np.mean(self.rot_errors[:self.count])
-    
-    def get_error_vectors(self):
-        curr_t_err = self.trans_errors[:self.count]
-        curr_r_err = self.rot_errors[:self.count]
-        
-        return curr_t_err, curr_r_err
     
     def get_statistics(self, latex_table_format=False,add_mean = False):
         

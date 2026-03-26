@@ -1,7 +1,6 @@
 
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from scipy.linalg import logm, expm
 import open3d as o3d
 from tqdm import tqdm
 
