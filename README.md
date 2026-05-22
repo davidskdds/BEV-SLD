@@ -20,10 +20,25 @@ Geoinformatics (ifp), University of Stuttgart](https://www.ifp.uni-stuttgart.de/
 ```
 <p align="center"> <img src="./fig/localization.gif" alt="Global localization on the MCD dataset" width="900"/> </p> <p align="center"><em>Fig. 1 — Global localization on the MCD dataset.</em></p>
 
+
+
+
+
 # Overview
 This repository provides the official implementation of **BEV-SLD**, including all scripts required to reproduce our experiments on the **Wild-Places** and **MCD dataset**.
 
 For a quick test with a pretrained model, see the [`demo` branch](https://github.com/davidskdds/BEV-SLD/tree/demo). Preprocessed BEV images are included, so no dataset download is required for the demo.
+
+# Introduction Video
+
+For an overview of our method, please see the introduction video:
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=x6ggmjvJNK0">
+    <img src="https://img.youtube.com/vi/x6ggmjvJNK0/0.jpg" alt="Introduction video" width="600" />
+  </a>
+</p>
+
 
 # Setup & Requirements
 We provide a bash script for setting up a virtual environment.
