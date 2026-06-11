@@ -1,6 +1,7 @@
 <div align="center">
 <h1>BEV-SLD: Self-Supervised Scene Landmark Detection for Global Localization with LiDAR Bird's-Eye View Images</h1>
 
+<a href="https://openaccess.thecvf.com/content/CVPR2026/html/Skuddis_BEV-SLD_Self-Supervised_Scene_Landmark_Detection_for_Global_Localization_with_LiDAR_CVPR_2026_paper.html"><img src="https://img.shields.io/badge/Paper-CVPR%202026-blue" alt="CVPR 2026 Paper"></a>
 <a href="https://arxiv.org/abs/2603.17159"><img src="https://img.shields.io/badge/arXiv-2603.17159-b31b1b" alt="arXiv"></a>
 
 [David Skuddis](https://www.ifp.uni-stuttgart.de/institut/team/Skuddis/), [Vincent Ress](https://www.ifp.uni-stuttgart.de/institut/team/Ress/), [Wei Zhang](https://willyzw.github.io/), [Vincent Ofosu Nyako](https://www.ifp.uni-stuttgart.de/institut/team/Ofosu-Nyako/), [Norbert Haala](https://www.ifp.uni-stuttgart.de/institut/team/Haala-00001/)
@@ -11,11 +12,13 @@ Geoinformatics (ifp), University of Stuttgart](https://www.ifp.uni-stuttgart.de/
 </div>
 
 ```bibtex
-@inproceedings{skuddis2026bevsld,
-  title={BEV-SLD: Self-Supervised Scene Landmark Detection for Global Localization with LiDAR Bird’s-Eye View Images},
-  author={David Skuddis and Vincent Ress and Wei Zhang and Vincent Ofosu Nyako and Norbert Haala},
-  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
-  year={2026}
+@InProceedings{Skuddis_2026_CVPR,
+    author    = {Skuddis, David and Ress, Vincent and Zhang, Wei and Nyako, Vincent Ofosu and Haala, Norbert},
+    title     = {BEV-SLD: Self-Supervised Scene Landmark Detection for Global Localization with LiDAR Bird's-Eye View Images},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month     = {June},
+    year      = {2026},
+    pages     = {31400-31409}
 }
 ```
 <p align="center"> <img src="./fig/localization.gif" alt="Global localization on the MCD dataset" width="900"/> </p> <p align="center"><em>Fig. 1 — Global localization on the MCD dataset.</em></p>
